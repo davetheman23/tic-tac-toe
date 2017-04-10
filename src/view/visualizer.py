@@ -4,18 +4,15 @@ import pygame
 import sys
 import time
 
-from view.board import Board, Cell
+from board import Board, Cell
 
 COLOR_BLACK = pygame.Color("Black")
 COLOR_WHITE = pygame.Color("White")
 
 
 class Visualizer:
-    def __init__(self, simulator, players):
+    def __init__(self, simulator):
         self.simulator = simulator
-        self.players = players
-        self.current_player = players[0]
-
         self.board = Board(60, 3, 3, 50, 50)
 
         pygame.init()
@@ -37,6 +34,9 @@ class Visualizer:
             # Handle events
             self.handle_events(pygame.event.get())
 
+            # get simulator state (currently not thread-safe)
+            self.board.set_board_state(self.simulator.get_game_board_state())
+
             # Render the current state of the game
             self.render()
 
@@ -46,15 +46,15 @@ class Visualizer:
 
     def render(self):
         """Renders the current state of the game"""
-        # next_player = self._simulator.get_next_player()
+        current_player = self.simulator.get_next_player()
 
         # Display the current player
         self._surface.fill(COLOR_WHITE)
-        text = self._font.render("Current player is {}".format(str(self.current_player)), 1, COLOR_BLACK)
+        text = self._font.render("Current player is {}".format(str(current_player.get_id())), 1, COLOR_BLACK)
         self._surface.blit(text, (0, 0, 100, 50))
 
         # Render the board
-        for cell in self.board.get_all_cells():
+        for _, cell in self.board.get_all_cells().iteritems():
             pygame.draw.rect(self._surface, COLOR_BLACK, cell.get_bound(), 1)
             if cell.get_state() == Cell.State.Nought:
                 pygame.draw.circle(self._surface, COLOR_BLACK, cell.get_center(), int(cell.size / 2 * 0.7), 2)
@@ -71,7 +71,8 @@ class Visualizer:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONUP:
-                self.handle_mouse_button_up_event(*event.pos)
+                pass
+                #self.handle_mouse_button_up_event(*event.pos)
 
     def handle_mouse_button_up_event(self, pos_x, pos_y):
         cell = self.board.get_board_cell(pos_x, pos_y)

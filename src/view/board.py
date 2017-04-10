@@ -1,5 +1,6 @@
 from enum import Enum
 
+from src.simulator.simulator import NO_SYMBOL, X_SYMBOL, O_SYMBOL
 
 class Cell:
     class State(Enum):
@@ -44,15 +45,28 @@ class Board:
         self.left = left
         self.top = top
         self.margin = margin
-        self.cells = [Cell(i, j, cell_size, left + margin + j * cell_size, top + margin + i * cell_size)
-                      for i in range(num_rows) for j in range(num_cols)]
+        self.cells = {(i, j): Cell(i, j, cell_size, left + margin + j * cell_size, top + margin + i * cell_size)
+                      for i in range(num_rows) for j in range(num_cols)}
 
     def get_all_cells(self):
         return self.cells
 
     def get_board_cell(self, pos_x, pos_y):
-        for cell in self.cells:
+        for pos, cell in self.cells.iteritems():
             if cell.contains(pos_x, pos_y):
                 return cell
         # if we cannot find any cells, we just return None
         return None
+
+    def set_board_state(self, board_state):
+        for row_idx, row in enumerate(board_state):
+            for col_idx, cell_val in enumerate(row):
+                if cell_val == NO_SYMBOL:
+                    self.cells[(row_idx, col_idx)].set_state(Cell.State.Unmarked)
+                elif cell_val == X_SYMBOL:
+                    self.cells[(row_idx, col_idx)].set_state(Cell.State.Cross)
+                elif cell_val == O_SYMBOL:
+                    self.cells[(row_idx, col_idx)].set_state(Cell.State.Nought)
+                else:
+                    raise ValueError("State '{}' not recognized!")
+

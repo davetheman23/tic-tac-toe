@@ -1,12 +1,24 @@
 #!/usr/bin/env python
 
-from view import visualizer
+import threading
+
+from view.visualizer import Visualizer
+from simulator.player import RandomPlayer, HumanPlayer
+from simulator.simulator import Simulator
 
 
 def main():
-    vis = visualizer.Visualizer(None, [1, 2])
+    #s = Simulator([RandomPlayer(0), HumanPlayer(1)])
+    s = Simulator([RandomPlayer(0), RandomPlayer(0)])
 
-    vis.run()
+    print("Setting up visualization daemon thread ...")
+    vis = Visualizer(s)
+    t = threading.Thread(target=vis.run)
+    t.daemon = True
+    t.start()
+
+    print("Starting to play tic-tac-toe")
+    s.play()
 
 
 if __name__ == '__main__':
