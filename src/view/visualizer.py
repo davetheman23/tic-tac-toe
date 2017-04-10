@@ -6,18 +6,22 @@ import time
 
 from view.board import Board, Cell
 
+COLOR_BLACK = pygame.Color("Black")
+COLOR_WHITE = pygame.Color("White")
+
 
 class Visualizer:
-    def __init__(self, simulator, human_player):
-        self._simulator = simulator
-        self._human_player = human_player
+    def __init__(self, simulator, players):
+        self.simulator = simulator
+        self.players = players
+        self.current_player = players[0]
 
-        self.board = Board(60, 3, 5, 50, 50)
+        self.board = Board(60, 3, 3, 50, 50)
 
         pygame.init()
 
         self._surface = pygame.display.set_mode((400, 300))
-        self._surface.fill((255, 255, 255))
+        self._surface.fill(COLOR_WHITE)
         pygame.display.set_caption('Tic-Tac-Toe')
 
         self._font = pygame.font.SysFont('Arial', 28)
@@ -30,11 +34,11 @@ class Visualizer:
         handles events
         """
         while True:
-            # Render the current state of the game
-            self.render()
-
             # Handle events
             self.handle_events(pygame.event.get())
+
+            # Render the current state of the game
+            self.render()
 
             # Update the display
             pygame.display.update()
@@ -43,15 +47,22 @@ class Visualizer:
     def render(self):
         """Renders the current state of the game"""
         # next_player = self._simulator.get_next_player()
-        next_player_id = -1
 
-        # Display the next player
-        text = self._font.render("Next player is {}".format(str(next_player_id)), 1, (0, 0, 0))
+        # Display the current player
+        self._surface.fill(COLOR_WHITE)
+        text = self._font.render("Current player is {}".format(str(self.current_player)), 1, COLOR_BLACK)
         self._surface.blit(text, (0, 0, 100, 50))
 
         # Render the board
         for cell in self.board.get_all_cells():
-            pygame.draw.rect(self._surface, (0, 0, 0), cell.get_bound(0.99), 1)
+            pygame.draw.rect(self._surface, COLOR_BLACK, cell.get_bound(), 1)
+            if cell.get_state() == Cell.State.Nought:
+                pygame.draw.circle(self._surface, COLOR_BLACK, cell.get_center(), int(cell.size / 2 * 0.7), 2)
+            elif cell.get_state() == Cell.State.Cross:
+                pygame.draw.line(self._surface, COLOR_BLACK, (cell.left, cell.top),
+                                 (cell.left + cell.size, cell.top + cell.size))
+                pygame.draw.line(self._surface, COLOR_BLACK, (cell.left, cell.top + cell.size),
+                                 (cell.left + cell.size, cell.top))
 
     def handle_events(self, events):
         """Handles all events"""
@@ -63,8 +74,11 @@ class Visualizer:
                 self.handle_mouse_button_up_event(*event.pos)
 
     def handle_mouse_button_up_event(self, pos_x, pos_y):
-        text = "Not found"
         cell = self.board.get_board_cell(pos_x, pos_y)
-        if cell is not None:
-            text = "({}, {})".format(cell.row_id, cell.col_id)
-            self._surface.blit(self._font.render(text, 1, (0, 0, 0)), cell.get_bound())
+        if cell is not None and cell.get_state() == Cell.State.Unmarked:
+            if self.current_player == 1:
+                cell.set_state(Cell.State.Nought)
+                self.current_player = 2
+            elif self.current_player == 2:
+                cell.set_state(Cell.State.Cross)
+                self.current_player = 1

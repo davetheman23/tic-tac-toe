@@ -4,7 +4,7 @@ from view import visualizer
 
 
 def main():
-    vis = visualizer.Visualizer(None, None)
+    vis = visualizer.Visualizer(None, [1, 2])
 
     vis.run()
 
