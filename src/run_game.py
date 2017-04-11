@@ -8,17 +8,16 @@ from simulator.simulator import Simulator
 
 
 def main():
-    #s = Simulator([RandomPlayer(0), HumanPlayer(1)])
-    s = Simulator([RandomPlayer(0), RandomPlayer(0)])
+    s = Simulator([RandomPlayer(0), HumanPlayer(1)])
 
-    print("Setting up visualization daemon thread ...")
-    vis = Visualizer(s)
-    t = threading.Thread(target=vis.run)
+    print("Starting to play tic-tac-toe")
+    t = threading.Thread(target=s.play)
     t.daemon = True
     t.start()
 
-    print("Starting to play tic-tac-toe")
-    s.play()
+    print("Setting up visualization daemon thread ...")
+    vis = Visualizer(s)
+    vis.run()
 
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@ import sys
 import time
 
 from board import Board, Cell
+from simulator.player import HumanPlayer
 
 COLOR_BLACK = pygame.Color("Black")
 COLOR_WHITE = pygame.Color("White")
@@ -42,7 +43,7 @@ class Visualizer:
 
             # Update the display
             pygame.display.update()
-            time.sleep(0.01)
+            time.sleep(0.1)
 
     def render(self):
         """Renders the current state of the game"""
@@ -71,15 +72,11 @@ class Visualizer:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONUP:
-                pass
-                #self.handle_mouse_button_up_event(*event.pos)
+                self.handle_mouse_button_up_event(*event.pos)
 
     def handle_mouse_button_up_event(self, pos_x, pos_y):
         cell = self.board.get_board_cell(pos_x, pos_y)
         if cell is not None and cell.get_state() == Cell.State.Unmarked:
-            if self.current_player == 1:
-                cell.set_state(Cell.State.Nought)
-                self.current_player = 2
-            elif self.current_player == 2:
-                cell.set_state(Cell.State.Cross)
-                self.current_player = 1
+            player = self.simulator.get_next_player()
+            if isinstance(player, HumanPlayer):
+                player.handle_mouse_up_event(cell.row_id, cell.col_id)

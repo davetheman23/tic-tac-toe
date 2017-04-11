@@ -2,7 +2,7 @@
 
 import time
 
-from player import RandomPlayer
+from player import RandomPlayer, HumanPlayer
 
 NUM_BOARD_ROWS = 3
 NUM_BOARD_COLS = 3
@@ -38,6 +38,10 @@ class Simulator:
             try:
                 next_player = self.get_next_player()
                 move = next_player.get_next_move(self.get_game_board_state())
+                if move is None:
+                    # if no move available just skip
+                    time.sleep(0.1)
+                    continue
                 self.make_move(self.next_player_index, move)
                 self.print_game_board()
                 time.sleep(1)
@@ -115,7 +119,6 @@ class Simulator:
 
     def make_move(self, player_index, location):
         """Makes a move for the specified player and location"""
-        symbol = NO_SYMBOL
         if player_index == 0:
             symbol = X_SYMBOL
         elif player_index == 1:

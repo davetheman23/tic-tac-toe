@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import copy
 import random
 
 from abc import ABCMeta, abstractmethod
@@ -16,7 +17,7 @@ class Player:
 
     @abstractmethod
     def get_next_move(self, state):
-        return None
+        pass
 
 
 class RandomPlayer(Player):
@@ -32,11 +33,12 @@ class RandomPlayer(Player):
 class HumanPlayer(Player):
     def __init__(self, player_id):
         Player.__init__(self, player_id)
-        self.waiting = False
+        self.next_move = None
 
-    def get_next_move(self):
-        self.waiting = True
-        pass
+    def get_next_move(self, state):
+        move = copy.deepcopy(self.next_move)
+        self.next_move = None
+        return move
 
-    def handle_mouse_up_event(self):
-        pass
+    def handle_mouse_up_event(self, row_idx, col_idx):
+        self.next_move = (row_idx, col_idx)
