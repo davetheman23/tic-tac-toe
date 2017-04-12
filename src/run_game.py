@@ -4,11 +4,11 @@ import threading
 
 from view.visualizer import Visualizer
 from model.player import RandomPlayer, HumanPlayer
-from model.game import Game
+from model.game import Game, NUM_BOARD_ROWS, NUM_BOARD_COLS
 
 
 def main():
-    s = Game([RandomPlayer(0), HumanPlayer(1)])
+    s = Game([RandomPlayer(0, NUM_BOARD_ROWS, NUM_BOARD_COLS), HumanPlayer(1)])
 
     print("Starting to play tic-tac-toe")
     t = threading.Thread(target=s.play)

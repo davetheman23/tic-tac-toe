@@ -2,10 +2,13 @@
 
 import time
 
+from enum import Enum
+
 from player import RandomPlayer
 
-NUM_BOARD_ROWS = 3
-NUM_BOARD_COLS = 3
+NUM_BOARD_ROWS = 4
+NUM_BOARD_COLS = 4
+NUM_WINNING_CONNECTS = 4
 
 NO_SYMBOL = 0
 X_SYMBOL = 1
@@ -20,6 +23,100 @@ class GameError(Exception):
         return repr(self.msg)
 
 
+class BoardCell:
+    class Direction(Enum):
+        Right = (0, 1)
+        DownRight = (1, 1)
+        Down = (1, 0)
+        DownLeft = (1, -1)
+
+    def __init__(self, row_id, col_id, state=NO_SYMBOL):
+        self.row_id = row_id
+        self.col_id = col_id
+        self.state = state
+        self.downstream_neighbors = {
+            BoardCell.Direction.Right: None,
+            BoardCell.Direction.DownRight: None,
+            BoardCell.Direction.Down: None,
+            BoardCell.Direction.DownLeft: None
+        }
+
+    def __str__(self):
+        return str("({}, {}): {}".format(self.row_id, self.col_id, self.state))
+
+    def reset(self):
+        self.__init__(self.row_id, self.col_id)
+
+    def get_location(self):
+        return self.row_id, self.col_id
+
+    def add_downstream_neighbor(self, direction, cell=None):
+        self.downstream_neighbors[direction] = cell
+
+    def is_neighbor_matching(self, direction):
+        neighbor = self.downstream_neighbors[direction]
+        if neighbor is not None and neighbor.state == self.state:
+            return True
+        return False
+
+    def get_all_matching_downstream_cells(self, direction):
+        neighbor = self.downstream_neighbors[direction]
+        if not self.is_neighbor_matching(direction):
+            return []
+        return [neighbor] + neighbor.get_all_matching_downstream_cells(direction)
+
+    def get_max_of_downstream_neighbors(self):
+        max_num_neighbors = 0
+        for direction in BoardCell.Direction:
+            neighbors = self.get_all_matching_downstream_cells(direction)
+            if len(neighbors) > max_num_neighbors:
+                max_num_neighbors = len(neighbors)
+        return max_num_neighbors
+
+
+class GameBoard:
+    def __init__(self, num_rows, num_cols):
+        self.num_rows = num_rows
+        self.num_cols = num_cols
+        self.cells = {(i, j): BoardCell(i, j) for i in range(num_rows) for j in range(num_cols)}
+        # build the cell tree, just need to build it once, since all neighbors are stored by reference, changes in the
+        # neighbor contents will be reflected when accessed
+        for cell in self.cells.values():
+            for direction in BoardCell.Direction:
+                new_location = tuple(map(sum, zip(cell.get_location(), direction.value)))
+                if new_location in self.cells:
+                    cell.add_downstream_neighbor(direction, self.get_cell(*new_location))
+
+    def get_cell(self, row_id, col_id):
+        if (row_id, col_id) not in self.cells:
+            raise ValueError("No cell at position ({}, {}) on the game board".format(row_id, col_id))
+        return self.cells[(row_id, col_id)]
+
+    def get_board_state(self):
+        return [(location, cell.state) for location, cell in self.cells.iteritems()]
+
+    def get_winning_state(self, num_win_connections=NUM_WINNING_CONNECTS):
+        for cell in self.cells.values():
+            if cell.state == NO_SYMBOL:
+                continue
+            if cell.get_max_of_downstream_neighbors() + 1 >= num_win_connections:
+                return cell.state
+        return NO_SYMBOL
+
+    def are_moves_available(self):
+        for cell in self.cells.values():
+            if cell.state == NO_SYMBOL:
+                return True
+        return False
+
+    def update_cell(self, row_id, col_id, state):
+        self.get_cell(row_id, col_id).state = state
+
+    def reset(self):
+        for cell in self.cells:
+            cell.reset()
+
+
 class Game:
     MIN_NUM_PLAYERS = 2
     MAX_NUM_PLAYERS = 2
@@ -28,7 +125,7 @@ class Game:
         if len(players) < self.MIN_NUM_PLAYERS or len(players) > self.MAX_NUM_PLAYERS:
             raise GameError("Invalid number of players {}".format(str(len(players))))
 
-        self.game_board_state = [[NO_SYMBOL for i in range(NUM_BOARD_ROWS)] for j in range(NUM_BOARD_COLS)]
+        self.game_board = GameBoard(NUM_BOARD_ROWS, NUM_BOARD_COLS)
         self.next_player_index = 0
         self.players = players
 
@@ -49,7 +146,7 @@ class Game:
                 print(e.msg)
 
     def get_game_board_state(self):
-        return self.game_board_state
+        return self.game_board.get_board_state()
 
     def get_next_player(self):
         """Returns the player whose turn is next"""
@@ -61,51 +158,20 @@ class Game:
     def is_terminated(self):
         """Returns true if the one of the players has won the model"""
         # Game is over if X or O wins
-        winner = self.get_winner()
+        winner = self.game_board.get_winning_state()
         if winner != NO_SYMBOL:
             if winner == X_SYMBOL:
                 print("X wins!")
             else:
                 print("O wins!")
-
             return True
 
-        # Game is over if the board is full (i.e. a draw)
-        for i in range(3):
-            for j in range(3):
-                if self.game_board_state[i][j] == NO_SYMBOL:
-                    return False
+        if self.game_board.are_moves_available():
+            return False
 
+        # No one is winning and the board is full (i.e. a draw)
         print("It's a draw!")
         return True
-
-    def get_winner(self):
-        """Returns X_SYMBOL if the X player has won, O_SYMBOL if the O player has won, and NO_SYMBOL otherwise"""
-        # Compute the row, column, and diagonal sums
-        row_sums = map(sum, self.game_board_state)
-        col_sums = map(sum, [list(column) for column in zip(*self.game_board_state)])
-        left_diag_sum = 0
-        right_diag_sum = 0
-
-        for i in range(3):
-            left_diag_sum += self.game_board_state[i][i]
-            right_diag_sum += self.game_board_state[i][2 - i]
-
-        # Check if a player has won on the diagonal
-        if left_diag_sum == 3 * X_SYMBOL or right_diag_sum == 3 * X_SYMBOL:
-            return X_SYMBOL
-        elif left_diag_sum == 3 * O_SYMBOL or left_diag_sum == 3 * O_SYMBOL:
-            return O_SYMBOL
-
-        # The row/column sums indicate if a player has won along a row or column
-        for s in (row_sums + col_sums):
-            if s == 3 * X_SYMBOL:
-                return X_SYMBOL
-            elif s == 3 * O_SYMBOL:
-                return O_SYMBOL
-
-        # Otherwise, there is no winner yet or it is a draw
-        return NO_SYMBOL
 
     def reset(self):
         """Resets the state of the model"""
@@ -113,9 +179,7 @@ class Game:
         self.next_player_index = 0
 
         # Reset the model board
-        for i in range(3):
-            for j in range(3):
-                self.game_board_state[i][j] = NO_SYMBOL
+        self.game_board.reset()
 
     def make_move(self, player_index, location):
         """Makes a move for the specified player and location"""
@@ -126,29 +190,23 @@ class Game:
         else:
             raise GameError("Invalid player index of {}".format(str(player_index)))
 
-        i = location[0]
-        j = location[1]
-
         # Location must not already be occupied
-        if self.game_board_state[i][j] != NO_SYMBOL:
-            raise GameError("Board location of ({cell_i}, {cell_j}) is already occupied!".format(cell_i=str(i),
-                                                                                                 cell_j=str(j)))
+        target_cell = self.game_board.get_cell(*location)
+        if target_cell.state != NO_SYMBOL:
+            raise GameError("Board location of ({}, {}) is already occupied!".format(*location))
 
-        self.game_board_state[i][j] = symbol
+        target_cell.state = symbol
         self.next_player_index = (self.next_player_index + 1) % len(self.players)
 
     def print_game_board(self):
-        # flattened = [x for row in self.game_board_state for x in row]
-        print("{}|{}|{}\n------\n{}|{}|{}\n------\n{}|{}|{}\n".format(self.game_board_state[0][0],
-                                                                      self.game_board_state[0][1],
-                                                                      self.game_board_state[0][2],
-                                                                      self.game_board_state[1][0],
-                                                                      self.game_board_state[1][1],
-                                                                      self.game_board_state[1][2],
-                                                                      self.game_board_state[2][0],
-                                                                      self.game_board_state[2][1],
-                                                                      self.game_board_state[2][2]))
+        print("=========" * NUM_BOARD_COLS)
+        print(('--------' * NUM_BOARD_COLS + '\n').join(['|{:^6s}|' * NUM_BOARD_COLS + '\n'] * NUM_BOARD_ROWS)
+              .format(*[str(self.game_board.get_cell(i, j).state)
+                        for i in range(NUM_BOARD_ROWS)
+                        for j in range(NUM_BOARD_COLS)]))
+        print("=========" * NUM_BOARD_COLS)
+
 
 if __name__ == '__main__':
-    s = Game([RandomPlayer(0), RandomPlayer(1)])
+    s = Game([RandomPlayer(0, NUM_BOARD_ROWS, NUM_BOARD_COLS), RandomPlayer(1, NUM_BOARD_ROWS, NUM_BOARD_COLS)])
     s.play()

@@ -21,12 +21,14 @@ class Player:
 
 
 class RandomPlayer(Player):
-    def __init__(self, player_id):
+    def __init__(self, player_id, num_rows, num_cols):
         Player.__init__(self, player_id)
+        self.num_rows = num_rows
+        self.num_cols = num_cols
 
     def get_next_move(self, state):
-        move = (random.randint(0, 2),
-                random.randint(0, 2))
+        move = (random.randint(0, self.num_rows - 1),
+                random.randint(0, self.num_cols - 1))
         return move
 
 

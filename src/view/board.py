@@ -1,6 +1,6 @@
 from enum import Enum
 
-from src.model.game import NO_SYMBOL, X_SYMBOL, O_SYMBOL
+from model.game import NO_SYMBOL, X_SYMBOL, O_SYMBOL
 
 class Cell:
     class State(Enum):
@@ -59,14 +59,12 @@ class Board:
         return None
 
     def set_board_state(self, board_state):
-        for row_idx, row in enumerate(board_state):
-            for col_idx, cell_val in enumerate(row):
-                if cell_val == NO_SYMBOL:
-                    self.cells[(row_idx, col_idx)].set_state(Cell.State.Unmarked)
-                elif cell_val == X_SYMBOL:
-                    self.cells[(row_idx, col_idx)].set_state(Cell.State.Cross)
-                elif cell_val == O_SYMBOL:
-                    self.cells[(row_idx, col_idx)].set_state(Cell.State.Nought)
-                else:
-                    raise ValueError("State '{}' not recognized!")
-
+        for location, state in board_state:
+            if state == NO_SYMBOL:
+                self.cells[location].set_state(Cell.State.Unmarked)
+            elif state == X_SYMBOL:
+                self.cells[location].set_state(Cell.State.Cross)
+            elif state == O_SYMBOL:
+                self.cells[location].set_state(Cell.State.Nought)
+            else:
+                raise ValueError("State '{}' not recognized!")
