@@ -1,6 +1,6 @@
 from enum import Enum
 
-from src.simulator.simulator import NO_SYMBOL, X_SYMBOL, O_SYMBOL
+from src.model.game import NO_SYMBOL, X_SYMBOL, O_SYMBOL
 
 class Cell:
     class State(Enum):

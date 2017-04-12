@@ -2,7 +2,7 @@
 
 import time
 
-from player import RandomPlayer, HumanPlayer
+from player import RandomPlayer
 
 NUM_BOARD_ROWS = 3
 NUM_BOARD_COLS = 3
@@ -12,7 +12,7 @@ X_SYMBOL = 1
 O_SYMBOL = -1
 
 
-class SimulatorError(Exception):
+class GameError(Exception):
     def __init__(self, msg):
         self.msg = msg
 
@@ -20,20 +20,20 @@ class SimulatorError(Exception):
         return repr(self.msg)
 
 
-class Simulator:
+class Game:
     MIN_NUM_PLAYERS = 2
     MAX_NUM_PLAYERS = 2
 
     def __init__(self, players):
         if len(players) < self.MIN_NUM_PLAYERS or len(players) > self.MAX_NUM_PLAYERS:
-            raise SimulatorError("Invalid number of players {}".format(str(len(players))))
+            raise GameError("Invalid number of players {}".format(str(len(players))))
 
         self.game_board_state = [[NO_SYMBOL for i in range(NUM_BOARD_ROWS)] for j in range(NUM_BOARD_COLS)]
         self.next_player_index = 0
         self.players = players
 
     def play(self):
-        """The main play loop of the game"""
+        """The main play loop of the model"""
         while not self.is_terminated():
             try:
                 next_player = self.get_next_player()
@@ -45,7 +45,7 @@ class Simulator:
                 self.make_move(self.next_player_index, move)
                 self.print_game_board()
                 time.sleep(1)
-            except SimulatorError as e:
+            except GameError as e:
                 print(e.msg)
 
     def get_game_board_state(self):
@@ -54,12 +54,12 @@ class Simulator:
     def get_next_player(self):
         """Returns the player whose turn is next"""
         if self.next_player_index < 0 or self.next_player_index >= len(self.players):
-            raise SimulatorError("Invalid next player index of {}".format(str(len(self.players))))
+            raise GameError("Invalid next player index of {}".format(str(len(self.players))))
 
         return self.players[self.next_player_index]
 
     def is_terminated(self):
-        """Returns true if the one of the players has won the game"""
+        """Returns true if the one of the players has won the model"""
         # Game is over if X or O wins
         winner = self.get_winner()
         if winner != NO_SYMBOL:
@@ -108,11 +108,11 @@ class Simulator:
         return NO_SYMBOL
 
     def reset(self):
-        """Resets the state of the game"""
+        """Resets the state of the model"""
         # Reset the next player count
         self.next_player_index = 0
 
-        # Reset the game board
+        # Reset the model board
         for i in range(3):
             for j in range(3):
                 self.game_board_state[i][j] = NO_SYMBOL
@@ -124,15 +124,15 @@ class Simulator:
         elif player_index == 1:
             symbol = O_SYMBOL
         else:
-            raise SimulatorError("Invalid player index of {}".format(str(player_index)))
+            raise GameError("Invalid player index of {}".format(str(player_index)))
 
         i = location[0]
         j = location[1]
 
         # Location must not already be occupied
         if self.game_board_state[i][j] != NO_SYMBOL:
-            raise SimulatorError("Board location of ({cell_i}, {cell_j}) is already occupied!".format(cell_i=str(i),
-                                                                                                      cell_j=str(j)))
+            raise GameError("Board location of ({cell_i}, {cell_j}) is already occupied!".format(cell_i=str(i),
+                                                                                                 cell_j=str(j)))
 
         self.game_board_state[i][j] = symbol
         self.next_player_index = (self.next_player_index + 1) % len(self.players)
@@ -150,5 +150,5 @@ class Simulator:
                                                                       self.game_board_state[2][2]))
 
 if __name__ == '__main__':
-    s = Simulator([RandomPlayer(0), RandomPlayer(1)])
+    s = Game([RandomPlayer(0), RandomPlayer(1)])
     s.play()

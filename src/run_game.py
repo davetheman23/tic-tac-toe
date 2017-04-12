@@ -3,12 +3,12 @@
 import threading
 
 from view.visualizer import Visualizer
-from simulator.player import RandomPlayer, HumanPlayer
-from simulator.simulator import Simulator
+from model.player import RandomPlayer, HumanPlayer
+from model.game import Game
 
 
 def main():
-    s = Simulator([RandomPlayer(0), HumanPlayer(1)])
+    s = Game([RandomPlayer(0), HumanPlayer(1)])
 
     print("Starting to play tic-tac-toe")
     t = threading.Thread(target=s.play)

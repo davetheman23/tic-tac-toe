@@ -5,15 +5,15 @@ import sys
 import time
 
 from board import Board, Cell
-from simulator.player import HumanPlayer
+from model.player import HumanPlayer
 
 COLOR_BLACK = pygame.Color("Black")
 COLOR_WHITE = pygame.Color("White")
 
 
 class Visualizer:
-    def __init__(self, simulator):
-        self.simulator = simulator
+    def __init__(self, game):
+        self.game = game
         self.board = Board(60, 3, 3, 50, 50)
 
         pygame.init()
@@ -35,10 +35,10 @@ class Visualizer:
             # Handle events
             self.handle_events(pygame.event.get())
 
-            # get simulator state (currently not thread-safe)
-            self.board.set_board_state(self.simulator.get_game_board_state())
+            # get model state (currently not thread-safe)
+            self.board.set_board_state(self.game.get_game_board_state())
 
-            # Render the current state of the game
+            # Render the current state of the model
             self.render()
 
             # Update the display
@@ -46,8 +46,8 @@ class Visualizer:
             time.sleep(0.1)
 
     def render(self):
-        """Renders the current state of the game"""
-        current_player = self.simulator.get_next_player()
+        """Renders the current state of the model"""
+        current_player = self.game.get_next_player()
 
         # Display the current player
         self._surface.fill(COLOR_WHITE)
@@ -77,6 +77,6 @@ class Visualizer:
     def handle_mouse_button_up_event(self, pos_x, pos_y):
         cell = self.board.get_board_cell(pos_x, pos_y)
         if cell is not None and cell.get_state() == Cell.State.Unmarked:
-            player = self.simulator.get_next_player()
+            player = self.game.get_next_player()
             if isinstance(player, HumanPlayer):
                 player.handle_mouse_up_event(cell.row_id, cell.col_id)
