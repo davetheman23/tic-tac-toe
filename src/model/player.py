@@ -4,8 +4,13 @@ import copy
 import random
 
 from abc import ABCMeta, abstractmethod
+from enum import Enum
 
 #from model.game import NO_SYMBOL, X_SYMBOL, O_SYMBOL
+
+class PlayerType(Enum):
+    MaxPlayer = 1
+    MinPlayer = -1
 
 
 class Player:
@@ -54,7 +59,7 @@ class MinimaxPlayer(Player):
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.moves = {}
-        self.build_minimax_action_policy()
+        self.type = player_type
 
     def get_next_move(self, state):
         """
@@ -85,5 +90,5 @@ class MinimaxPlayer(Player):
             encoded_state[position] = cell_state
         return tuple(encoded_state)
 
-    def build_minimax_action_policy(self, encoded_state):
-        pass
+    def get_winning_reward(self):
+        return self.type.value

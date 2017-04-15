@@ -1,66 +1,60 @@
 
 from collections import deque
 from sys import maxint
-from enum import Enum
-#from model.player import PlayerType
 
 
-class PlayerType(Enum):
-    MinPlayer = -1
-    MaxPlayer = 1
+class MinimaxAlgorithm:
+    def __init__(self, game):
+        self.best_policy = {}
+        self.game = game
 
+    def get_best_policy(self, fresh=False):
+        if not self.best_policy or fresh:
+            self.best_policy = {}
+            self._run_minimax()
+        return self.best_policy
 
-def evaluate(game):
-    if game.get_winner() == PlayerType.MaxPlayer.value:
-        return 1
-    elif game.get_winner() == PlayerType.MinPlayer.value:
-        return -1
-    return 0
+    def _initialize_best_value(self, player):
+        if player.get_winning_reward() > self.game.get_draw_reward():
+            return -maxint
+        elif player.get_winning_reward() < self.game.get_draw_reward():
+            return maxint
+        else:
+            raise RuntimeError("Cannot determine best initial value for player {}".format(player.id))
 
+    def _is_value_better(self, player, new_value, old_value):
+        if player.get_winning_reward() > self.game.get_draw_reward():
+            if new_value > old_value:
+                return True
+        elif player.get_winning_reward() < self.game.get_draw_reward():
+            if new_value < old_value:
+                return True
+        else:
+            raise RuntimeError("Cannot determine if value is improving for player {}".format(player.id))
+        return False
 
-def initialize_best_value(player_type):
-    if player_type == PlayerType.MaxPlayer:
-        return -maxint
-    elif player_type == PlayerType.MinPlayer:
-        return maxint
-    else:
-        raise RuntimeError("player type {} not recognized".format(player_type))
+    def _run_minimax(self):
+        if self.game.is_game_over():
+            if self.game.get_winner() is None:
+                return self.game.get_draw_reward()
+            return self.game.get_winner().get_winning_reward()
 
+        available_moves = self.game.get_available_moves()
+        state = tuple(self.game.game_state)
+        self.best_policy[state] = (self._initialize_best_value(self.game.current_player),
+                                   next(iter(available_moves)))
+        for move in available_moves:
+            self.game.make_move(move)
+            new_value = self._run_minimax()
+            self.game.unmake_move(move)
+            if self._is_value_better(self.game.current_player, new_value, self.best_policy[state][0]):
+                self.best_policy[state] = (new_value, move)
 
-def is_value_better(player_type, new_value, old_value):
-    if player_type == PlayerType.MaxPlayer:
-        if new_value > old_value:
-            return True
-    elif player_type == PlayerType.MinPlayer:
-        if new_value < old_value:
-            return True
-    else:
-        raise RuntimeError("player type {} not recognized".format(player_type))
-    return False
-
-best_policy = {}
-
-
-def minimax(game):
-    if not isinstance(game, Game):
-        raise ValueError("Game should be of type '{}'".format(type(Game)))
-    if game.is_game_over():
-        return evaluate(game)
-    available_moves = game.get_available_moves()
-    state = tuple(game.game_state)
-    best_policy[state] = (initialize_best_value(game.current_player.type), next(iter(available_moves)))
-    for move in available_moves:
-        game.make_move(move)
-        new_value = minimax(game)
-        game.unmake_move(move)
-        if is_value_better(game.current_player.type, new_value, best_policy[state][0]):
-            best_policy[state] = (new_value, move)
-
-    return best_policy[state][0]
+        return self.best_policy[state][0]
 
 
 class Game:
-    NEUTRAL_MOVE_TYPE = 0
+    NEUTRAL_MOVE_VALUE = 0
 
     def __init__(self, num_rows, num_cols, num_connects_to_win, players):
         self.num_rows = num_rows
@@ -69,7 +63,7 @@ class Game:
         self.players = deque(players)
         self.current_player = self.players.popleft()
 
-        self.game_state = [Game.NEUTRAL_MOVE_TYPE] * (self.num_rows * self.num_cols)
+        self.game_state = [Game.NEUTRAL_MOVE_VALUE] * (self.num_rows * self.num_cols)
         self.played_moves = set()
         self.available_moves = set(range(self.num_rows * self.num_cols))
         self.winner = None
@@ -111,20 +105,20 @@ class Game:
                 if self.is_space_down(played_move):
                     # if there is also space for down position, need to evaluate downright
                     down_right_connects = set(
-                        [played_move + i * (self.num_cols + 1) for i in range(self.num_connects_to_win)])
+                        (played_move + i * (self.num_cols + 1) for i in range(self.num_connects_to_win)))
                     if self.is_connected(move_type, down_right_connects):
                         self.winner = move_type
                         return True
             if self.is_space_down(played_move):
                 # if there is space down, need to evaluate down direction for connection
-                down_connects = set([played_move + i * self.num_cols for i in range(self.num_connects_to_win)])
+                down_connects = set((played_move + i * self.num_cols for i in range(self.num_connects_to_win)))
                 if self.is_connected(move_type, down_connects):
                     self.winner = move_type
                     return True
                 if self.is_space_to_left(played_move):
                     # if there is also space to the left, need to evaluate down-left direction for connection
                     down_left_connects = set(
-                        [played_move + i * (self.num_cols - 1) for i in range(self.num_connects_to_win)])
+                        (played_move + i * (self.num_cols - 1) for i in range(self.num_connects_to_win)))
                     if self.is_connected(move_type, down_left_connects):
                         self.winner = move_type
                         return True
@@ -134,19 +128,28 @@ class Game:
         return self.available_moves
 
     def get_winner(self):
-        return self.winner
+        if self.winner is None:
+            return None
+        if self.current_player.get_winning_reward() == self.winner:
+            return self.current_player
+        for player in self.players:
+            if player.get_winning_reward() == self.winner:
+                return player
+        return None
+
+    def get_draw_reward(self):
+        return Game.NEUTRAL_MOVE_VALUE
 
     def make_move(self, move):
-        self.game_state[move] = self.current_player.type.value
+        self.game_state[move] = self.current_player.get_winning_reward()
         self.played_moves.add(move)
         self.available_moves.remove(move)
         # change to next player's turn
         self.players.append(self.current_player)
         self.current_player = self.players.popleft()
 
-
     def unmake_move(self, move):
-        self.game_state[move] = Game.NEUTRAL_MOVE_TYPE
+        self.game_state[move] = Game.NEUTRAL_MOVE_VALUE
         self.played_moves.remove(move)
         self.available_moves.add(move)
         # change to previous player's turn
@@ -154,54 +157,3 @@ class Game:
         self.current_player = self.players.pop()
         # when unmaking a move, it potentially reverted the winning state
         self.winner = None
-
-
-class Player:
-    def __init__(self, player_type):
-        self.type = player_type
-
-import random
-import time
-
-NUM_COLS = 4
-NUM_ROWS = 4
-NUM_CONNECTS_TO_WIN = 3
-
-if __name__ == '__main__':
-    for NUM_ROWS in range(3, 6):
-        for NUM_COLS in range(3, 6):
-            NUM_CONNECTS_TO_WIN = max(min(NUM_ROWS, NUM_COLS) - 1, 3)
-            g = Game(NUM_ROWS, NUM_COLS, NUM_CONNECTS_TO_WIN, [Player(PlayerType.MaxPlayer), Player(PlayerType.MinPlayer)])
-            print("building best policies according to minimax algorithm")
-            start = time.clock()
-            minimax_val = minimax(g)
-            end = time.clock()
-            print("Total time to build minimax best policy is: {} seconds".format(str(end - start)))
-
-            with open("game_results_{}_{}.txt".format(NUM_ROWS, NUM_COLS), "w") as f:
-                print("Running games of size {} x {} ...".format(NUM_ROWS, NUM_COLS))
-                f.write("Total time to build minimax best policy is: {} seconds".format(str(end - start)))
-                for game_idx in range(10):
-                    print("Running game {}".format(game_idx))
-                    f.write("\n#########################################\n")
-                    f.write("Start playing game {}\n".format(game_idx))
-                    g = Game(NUM_ROWS, NUM_COLS, NUM_CONNECTS_TO_WIN, [Player(PlayerType.MaxPlayer), Player(PlayerType.MinPlayer)])
-                    # set a random start location
-                    g.make_move(random.randint(0, NUM_ROWS * NUM_COLS - 1))
-                    f.write(str(g) + "\n")
-                    f.write("============\n")
-                    while not g.is_game_over():
-                        time.sleep(0.1)
-                        minimax_move = best_policy[tuple(g.game_state)][1]
-                        g.make_move(minimax_move)
-                        f.write(str(g) + "\n")
-                        f.write("============\n")
-                    winner = g.get_winner()
-                    if winner == 0:
-                        f.write("its a draw\n")
-                        print("its a draw")
-                    else:
-                        f.write("the winner is {}\n".format(winner))
-                        print("the winner is {}".format(winner))
-
-
