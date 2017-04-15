@@ -20,7 +20,7 @@ class MinimaxAlgorithm:
         elif player.get_winning_reward() < self.game.get_draw_reward():
             return maxint
         else:
-            raise RuntimeError("Cannot determine best initial value for player {}".format(player.id))
+            raise RuntimeError("Cannot determine best initial value for player {}".format(str(player)))
 
     def _is_value_better(self, player, new_value, old_value):
         if player.get_winning_reward() > self.game.get_draw_reward():
@@ -30,7 +30,7 @@ class MinimaxAlgorithm:
             if new_value < old_value:
                 return True
         else:
-            raise RuntimeError("Cannot determine if value is improving for player {}".format(player.id))
+            raise RuntimeError("Cannot determine if value is improving for player {}".format(str(player)))
         return False
 
     def _run_minimax(self):

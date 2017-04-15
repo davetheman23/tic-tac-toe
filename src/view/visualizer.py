@@ -5,7 +5,6 @@ import sys
 import time
 
 from board import Board, Cell
-from model.game import NUM_BOARD_ROWS, NUM_BOARD_COLS
 from model.player import HumanPlayer
 
 COLOR_BLACK = pygame.Color("Black")
@@ -15,7 +14,7 @@ COLOR_WHITE = pygame.Color("White")
 class Visualizer:
     def __init__(self, game):
         self.game = game
-        self.board = Board(60, NUM_BOARD_ROWS, NUM_BOARD_COLS, 50, 50)
+        self.board = Board(60, game.game_board.num_rows, game.game_board.num_cols, 50, 50)
 
         pygame.init()
 

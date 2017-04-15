@@ -10,6 +10,9 @@ if __name__ == '__main__':
         def __init__(self, winning_reward):
             self.winning_reward = winning_reward
 
+        def __str__(self):
+            return "'((}) Reward Player'".format(self.get_winning_reward())
+
         def get_winning_reward(self):
             return self.winning_reward
 

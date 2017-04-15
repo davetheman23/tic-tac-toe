@@ -4,12 +4,6 @@ import time
 
 from enum import Enum
 
-from player import RandomPlayer
-
-NUM_BOARD_ROWS = 4
-NUM_BOARD_COLS = 4
-NUM_WINNING_CONNECTS = 4
-
 NO_SYMBOL = 0
 X_SYMBOL = 1
 O_SYMBOL = -1
@@ -75,9 +69,10 @@ class BoardCell:
 
 
 class GameBoard:
-    def __init__(self, num_rows, num_cols):
+    def __init__(self, num_rows, num_cols, num_connects_to_win):
         self.num_rows = num_rows
         self.num_cols = num_cols
+        self.num_connects_to_win = num_connects_to_win
         self.cells = {(i, j): BoardCell(i, j) for i in range(num_rows) for j in range(num_cols)}
         # build the cell tree, just need to build it once, since all neighbors are stored by reference, changes in the
         # neighbor contents will be reflected when accessed
@@ -95,11 +90,11 @@ class GameBoard:
     def get_board_state(self):
         return [(location, cell.state) for location, cell in self.cells.iteritems()]
 
-    def get_winning_state(self, num_win_connections=NUM_WINNING_CONNECTS):
+    def get_winning_state(self):
         for cell in self.cells.values():
             if cell.state == NO_SYMBOL:
                 continue
-            if cell.get_max_of_downstream_neighbors() + 1 >= num_win_connections:
+            if cell.get_max_of_downstream_neighbors() + 1 >= self.num_connects_to_win:
                 return cell.state
         return NO_SYMBOL
 
@@ -121,11 +116,11 @@ class Game:
     MIN_NUM_PLAYERS = 2
     MAX_NUM_PLAYERS = 2
 
-    def __init__(self, players):
+    def __init__(self, players, num_rows, num_cols, num_connects_to_win):
         if len(players) < self.MIN_NUM_PLAYERS or len(players) > self.MAX_NUM_PLAYERS:
             raise GameError("Invalid number of players {}".format(str(len(players))))
 
-        self.game_board = GameBoard(NUM_BOARD_ROWS, NUM_BOARD_COLS)
+        self.game_board = GameBoard(num_rows, num_cols, num_connects_to_win)
         self.next_player_index = 0
         self.players = players
 
@@ -199,14 +194,18 @@ class Game:
         self.next_player_index = (self.next_player_index + 1) % len(self.players)
 
     def print_game_board(self):
-        print("=========" * NUM_BOARD_COLS)
-        print(('--------' * NUM_BOARD_COLS + '\n').join(['|{:^6s}|' * NUM_BOARD_COLS + '\n'] * NUM_BOARD_ROWS)
+        print("=========" * self.game_board.num_cols)
+        print(('--------' * self.game_board.num_cols + '\n').join(['|{:^6s}|' * self.game_board.num_cols + '\n']
+                                                                  * self.game_board.num_rows)
               .format(*[str(self.game_board.get_cell(i, j).state)
-                        for i in range(NUM_BOARD_ROWS)
-                        for j in range(NUM_BOARD_COLS)]))
-        print("=========" * NUM_BOARD_COLS)
+                        for i in range(self.game_board.num_rows)
+                        for j in range(self.game_board.num_cols)]))
+        print("=========" * self.game_board.num_cols)
 
 
 if __name__ == '__main__':
-    s = Game([RandomPlayer(0, NUM_BOARD_ROWS, NUM_BOARD_COLS), RandomPlayer(1, NUM_BOARD_ROWS, NUM_BOARD_COLS)])
+    from player import RandomPlayer, HumanPlayer, PlayerType
+
+    s = Game([RandomPlayer("Random Player", PlayerType.MaxPlayer, 3, 3),
+              HumanPlayer("Human Player", PlayerType.MinPlayer)])
     s.play()
