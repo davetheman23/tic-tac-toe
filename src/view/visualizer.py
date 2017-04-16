@@ -7,6 +7,7 @@ import time
 from board import Board, Cell
 from model.player import HumanPlayer
 
+COLOR_RED = pygame.Color("Red")
 COLOR_BLACK = pygame.Color("Black")
 COLOR_WHITE = pygame.Color("White")
 
@@ -47,11 +48,17 @@ class Visualizer:
 
     def render(self):
         """Renders the current state of the model"""
-        current_player = self.game.get_next_player()
+        game_winner = self.game.get_winner()
+        if self.game.is_terminated():
+            game_winner = self.game.get_winner()
+            outcome_str = "The Winner is {}".format(game_winner.get_id()) if game_winner else "It is a draw!"
+            text = self._font.render(outcome_str, 1, COLOR_RED)
+        else:
+            # Display the current player
+            text = self._font.render("Current player is {}".format(str(self.game.get_next_player().get_id())), 1, COLOR_BLACK)
 
-        # Display the current player
+        # Render the Text
         self._surface.fill(COLOR_WHITE)
-        text = self._font.render("Current player is {}".format(str(current_player.get_id())), 1, COLOR_BLACK)
         self._surface.blit(text, (0, 0, 100, 50))
 
         # Render the board

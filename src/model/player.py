@@ -74,6 +74,7 @@ class MinimaxPlayer(Player):
         self.num_connects_to_win = num_connects_to_win
         self.to_start = to_start
         self.moves = {}
+        self._build_minimax_action_policy()
 
     def get_next_move(self, state):
         """

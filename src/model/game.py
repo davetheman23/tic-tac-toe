@@ -39,7 +39,7 @@ class BoardCell:
         return str("({}, {}): {}".format(self.row_id, self.col_id, self.state))
 
     def reset(self):
-        self.__init__(self.row_id, self.col_id)
+        self.state = NO_SYMBOL
 
     def get_location(self):
         return self.row_id, self.col_id
@@ -108,7 +108,7 @@ class GameBoard:
         self.get_cell(row_id, col_id).state = state
 
     def reset(self):
-        for cell in self.cells:
+        for cell in self.cells.values():
             cell.reset()
 
 
@@ -139,6 +139,7 @@ class Game:
                 time.sleep(1)
             except GameError as e:
                 print(e.msg)
+        self.print_winner()
 
     def get_game_board_state(self):
         return self.game_board.get_board_state()
@@ -147,25 +148,26 @@ class Game:
         """Returns the player whose turn is next"""
         if self.next_player_index < 0 or self.next_player_index >= len(self.players):
             raise GameError("Invalid next player index of {}".format(str(len(self.players))))
-
         return self.players[self.next_player_index]
+
+    def get_last_player(self):
+        return self.players[(self.next_player_index - 1) % len(self.players)]
+
+    def get_winner(self):
+        winner = self.game_board.get_winning_state()
+        if winner != NO_SYMBOL:
+            return self.get_last_player()
+        return None
 
     def is_terminated(self):
         """Returns true if the one of the players has won the model"""
         # Game is over if X or O wins
         winner = self.game_board.get_winning_state()
         if winner != NO_SYMBOL:
-            if winner == X_SYMBOL:
-                print("X wins!")
-            else:
-                print("O wins!")
             return True
-
         if self.game_board.are_moves_available():
             return False
-
-        # No one is winning and the board is full (i.e. a draw)
-        print("It's a draw!")
+        # it is a draw then
         return True
 
     def reset(self):
@@ -201,6 +203,13 @@ class Game:
                         for i in range(self.game_board.num_rows)
                         for j in range(self.game_board.num_cols)]))
         print("=========" * self.game_board.num_cols)
+
+    def print_winner(self):
+        winner = self.get_winner()
+        if winner is None:
+            print("It is a draw")
+        else:
+            print("{} wins!".format(winner.get_id()))
 
 
 if __name__ == '__main__':
