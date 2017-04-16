@@ -11,7 +11,7 @@ if __name__ == '__main__':
             self.winning_reward = winning_reward
 
         def __str__(self):
-            return "'((}) Reward Player'".format(self.get_winning_reward())
+            return "'({}) Reward Player'".format(self.get_winning_reward())
 
         def get_winning_reward(self):
             return self.winning_reward
@@ -19,11 +19,15 @@ if __name__ == '__main__':
     for num_rows in range(3, 6):
         for num_cols in range(3, 6):
             num_connects_to_win = min(num_rows, num_cols)
-            g = Game(num_rows, num_cols, num_connects_to_win, [Player(-1), Player(1)])
+            g = Game(num_rows, num_cols, num_connects_to_win, [Player(1), Player(-1)])
             minimax = MinimaxAlgorithm(g)
             print("building best policies according to minimax algorithm")
             start = time.clock()
             best_policy = minimax.get_best_policy()
+            with open("best_policies.txt", "w") as f:
+                for state, policy in best_policy.iteritems():
+                    value, move = policy
+                    f.write("state is {}, best move is {}, best value is {}\n".format(state, move, value))
             end = time.clock()
             print("Total time to build minimax best policy is: {} seconds".format(str(end - start)))
 
@@ -34,7 +38,7 @@ if __name__ == '__main__':
                     print("Running game {}".format(game_idx))
                     f.write("\n#########################################\n")
                     f.write("Start playing game {}\n".format(game_idx))
-                    g = Game(num_rows, num_cols, num_connects_to_win, [Player(-1), Player(1)])
+                    g = Game(num_rows, num_cols, num_connects_to_win, [Player(1), Player(-1)])
                     # set a random start location
                     g.make_move(random.randint(0, num_rows * num_cols - 1))
                     f.write(str(g) + "\n")

@@ -1,3 +1,4 @@
+import copy
 
 from collections import deque
 from sys import maxint
@@ -35,8 +36,11 @@ class MinimaxAlgorithm:
 
     def _run_minimax(self):
         if self.game.is_game_over():
+            # print(str(self.game))
             if self.game.get_winner() is None:
+                # print("current player is {}, and there is no winner", self.game.current_player)
                 return self.game.get_draw_reward()
+            # print("current player is {}, and the winner is {}".format(self.game.current_player, self.game.get_winner()))
             return self.game.get_winner().get_winning_reward()
 
         available_moves = self.game.get_available_moves()
@@ -45,6 +49,7 @@ class MinimaxAlgorithm:
                                    next(iter(available_moves)))
         for move in available_moves:
             self.game.make_move(move)
+            # print("played moves: {}".format(str(self.game.played_moves)))
             new_value = self._run_minimax()
             self.game.unmake_move(move)
             if self._is_value_better(self.game.current_player, new_value, self.best_policy[state][0]):
@@ -91,8 +96,6 @@ class Game:
     def is_game_over(self):
         if self.winner is not None:
             return True
-        if not self.available_moves:
-            return True
 
         for played_move in self.played_moves:
             move_type = self.game_state[played_move]
@@ -122,6 +125,12 @@ class Game:
                     if self.is_connected(move_type, down_left_connects):
                         self.winner = move_type
                         return True
+
+        # make sure to check for played moves first, because the last move may have rendered available moves zero, but
+        # the game state is someone winning.
+        if not self.available_moves:
+            return True
+
         return False
 
     def get_available_moves(self):

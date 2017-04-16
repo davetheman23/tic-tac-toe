@@ -21,9 +21,6 @@ class Player:
         self.player_id = player_id
         self.type = player_type
 
-        # for now, simply use the enum value as the winning reward, which can actually be a function of the player type
-        self.winning_reward = player_type.value
-
     def __str__(self):
         return "'{}'".format(self.player_id)
 
@@ -31,7 +28,8 @@ class Player:
         return self.player_id
 
     def get_winning_reward(self):
-        return self.winning_reward
+        # for now, simply use the enum value as the winning reward, which can actually be a function of the player type
+        return self.type.value
 
     @abstractmethod
     def get_next_move(self, state):
@@ -121,5 +119,9 @@ class MinimaxPlayer(Player):
         g = minimax_lib.Game(self.num_rows, self.num_cols, self.num_connects_to_win, players)
         minimax = minimax_lib.MinimaxAlgorithm(g)
         print("building best action policies according to minimax algorithm")
-        self.moves = minimax.get_best_policy()
+        best_policy = minimax.get_best_policy()
+        for state, policy in best_policy.iteritems():
+            _, move = policy
+            self.moves[state] = (move / self.num_cols, move % self.num_cols)
         print("Finished building best action policies according to minimax algorithm")
+

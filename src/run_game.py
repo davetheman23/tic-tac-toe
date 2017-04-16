@@ -12,12 +12,12 @@ NUM_CONNECTS_TO_WIN = 3
 
 
 def main():
-    # random_player = RandomPlayer("Random Player", PlayerType.MaxPlayer, NUM_BOARD_ROWS, NUM_BOARD_COLS)
-    human_player = HumanPlayer("Human Player", PlayerType.MinPlayer)
+    #random_player = RandomPlayer("Random Player", PlayerType.MaxPlayer, NUM_BOARD_ROWS, NUM_BOARD_COLS)
     minimax_player = MinimaxPlayer("MiniMax Player", PlayerType.MaxPlayer,
-                                   NUM_BOARD_ROWS, NUM_BOARD_COLS, NUM_CONNECTS_TO_WIN, False)
+                                   NUM_BOARD_ROWS, NUM_BOARD_COLS, NUM_CONNECTS_TO_WIN, to_start=True)
+    human_player = HumanPlayer("Human Player", PlayerType.MinPlayer)
 
-    players = [human_player, minimax_player]
+    players = [minimax_player, human_player]
     s = Game(players, NUM_BOARD_ROWS, NUM_BOARD_COLS, NUM_CONNECTS_TO_WIN)
 
     print("Starting to play tic-tac-toe")
