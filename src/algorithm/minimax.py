@@ -34,7 +34,7 @@ class MinimaxAlgorithm:
             raise RuntimeError("Cannot determine if value is improving for player {}".format(str(player)))
         return False
 
-    def _run_minimax(self):
+    def _run_minimax(self, depth=0):
         if self.game.is_game_over():
             # print(str(self.game))
             if self.game.get_winner() is None:
@@ -50,10 +50,15 @@ class MinimaxAlgorithm:
         for move in available_moves:
             self.game.make_move(move)
             # print("played moves: {}".format(str(self.game.played_moves)))
-            new_value = self._run_minimax()
+            new_value = self._run_minimax(depth + 1)
             self.game.unmake_move(move)
             if self._is_value_better(self.game.current_player, new_value, self.best_policy[state][0]):
                 self.best_policy[state] = (new_value, move)
+
+            # A Heuristic: We already got the winning move, no need to evaluate other available moves, except the
+            # highest level node, where the move will be random, need to evaluate other possibilities
+            if depth > 0 and self.game.current_player.get_winning_reward() == new_value:
+                break
 
         return self.best_policy[state][0]
 

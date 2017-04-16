@@ -16,15 +16,15 @@ if __name__ == '__main__':
         def get_winning_reward(self):
             return self.winning_reward
 
-    for num_rows in range(3, 6):
-        for num_cols in range(3, 6):
-            num_connects_to_win = min(num_rows, num_cols)
+    for num_rows in range(3, 5):
+        for num_cols in range(3, 5):
+            num_connects_to_win = max(min(num_rows, num_cols) - 1, 3)
             g = Game(num_rows, num_cols, num_connects_to_win, [Player(1), Player(-1)])
             minimax = MinimaxAlgorithm(g)
             print("building best policies according to minimax algorithm")
             start = time.clock()
             best_policy = minimax.get_best_policy()
-            with open("best_policies.txt", "w") as f:
+            with open("best_policies_{}_{}.txt".format(num_rows, num_cols), "w") as f:
                 for state, policy in best_policy.iteritems():
                     value, move = policy
                     f.write("state is {}, best move is {}, best value is {}\n".format(state, move, value))
