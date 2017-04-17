@@ -67,4 +67,4 @@ class Board:
             elif state == O_SYMBOL:
                 self.cells[location].set_state(Cell.State.Nought)
             else:
-                raise ValueError("State '{}' not recognized!")
+                raise ValueError("State '{}' not recognized!".format(str(state)))

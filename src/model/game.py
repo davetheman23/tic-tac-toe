@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import copy
 import time
 
 from enum import Enum
@@ -73,22 +74,41 @@ class GameBoard:
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.num_connects_to_win = num_connects_to_win
+        self.available_positions = set()
         self.cells = {(i, j): BoardCell(i, j) for i in range(num_rows) for j in range(num_cols)}
         # build the cell tree, just need to build it once, since all neighbors are stored by reference, changes in the
         # neighbor contents will be reflected when accessed
-        for cell in self.cells.values():
+        for location, cell in self.cells.iteritems():
+            self.available_positions.add(self.convert_cell_location_to_position(location))
             for direction in BoardCell.Direction:
                 new_location = tuple(map(sum, zip(cell.get_location(), direction.value)))
                 if new_location in self.cells:
-                    cell.add_downstream_neighbor(direction, self.get_cell(*new_location))
+                    cell.add_downstream_neighbor(direction, self.get_cell(new_location))
+        self.positions = set(self.cells.keys())
 
-    def get_cell(self, row_id, col_id):
-        if (row_id, col_id) not in self.cells:
-            raise ValueError("No cell at position ({}, {}) on the game board".format(row_id, col_id))
-        return self.cells[(row_id, col_id)]
+    def get_cell(self, location):
+        if location not in self.cells:
+            raise ValueError("No cell at position ({}, {}) on the game board".format(*location))
+        return self.cells[location]
+
+    def convert_cell_location_to_position(self, cell_location):
+        """Convert a 2d coordinate into a 1d position by going through cols row by row"""
+        row_idx, col_idx = cell_location
+        position = row_idx * self.num_cols + col_idx
+        return position
+
+    def convert_position_to_cell_location(self, position):
+        return position / self.num_cols, position % self.num_cols
+
+    def encode_cell_state(self, cell_states):
+        encoded_state = [NO_SYMBOL] * (self.num_rows * self.num_cols)
+        for location, state in cell_states:
+            encoded_state[self.convert_cell_location_to_position(location)] = state
+        return tuple(encoded_state)
 
     def get_board_state(self):
         return [(location, cell.state) for location, cell in self.cells.iteritems()]
+        #return self.cells.iteritems()
 
     def get_winning_state(self):
         for cell in self.cells.values():
@@ -98,17 +118,20 @@ class GameBoard:
                 return cell.state
         return NO_SYMBOL
 
-    def are_moves_available(self):
-        for cell in self.cells.values():
-            if cell.state == NO_SYMBOL:
-                return True
-        return False
+    def set_cell_state(self, location, state):
+        if location not in self.cells:
+            raise ValueError("No cell at position ({}, {}) on the game board".format(*location))
+        self.cells[location].state = state
+        if state != NO_SYMBOL:
+            self.available_positions.remove(self.convert_cell_location_to_position(location))
 
-    def update_cell(self, row_id, col_id, state):
-        self.get_cell(row_id, col_id).state = state
+    def get_available_game_positions(self):
+        return self.available_positions
 
     def reset(self):
-        for cell in self.cells.values():
+        self.available_positions = set()
+        for location, cell in self.cells.iteritems():
+            self.available_positions.add(self.convert_cell_location_to_position(location))
             cell.reset()
 
 
@@ -129,7 +152,7 @@ class Game:
         while not self.is_terminated():
             try:
                 next_player = self.get_next_player()
-                move = next_player.get_next_move(self.get_game_board_state())
+                move = next_player.get_next_move(self.game_board.encode_cell_state(self.get_game_board_state()))
                 if move is None:
                     # if no move available just skip
                     time.sleep(0.1)
@@ -165,7 +188,7 @@ class Game:
         winner = self.game_board.get_winning_state()
         if winner != NO_SYMBOL:
             return True
-        if self.game_board.are_moves_available():
+        if len(self.game_board.get_available_game_positions()) > 0:
             return False
         # it is a draw then
         return True
@@ -188,18 +211,20 @@ class Game:
             raise GameError("Invalid player index of {}".format(str(player_index)))
 
         # Location must not already be occupied
-        target_cell = self.game_board.get_cell(*location)
-        if target_cell.state != NO_SYMBOL:
+        if self.game_board.get_cell(location).state != NO_SYMBOL:
             raise GameError("Board location of ({}, {}) is already occupied!".format(*location))
 
-        target_cell.state = symbol
+        # actually make the move by changing the state of the target cell
+        self.game_board.set_cell_state(location, symbol)
+
+        # switch to the next player
         self.next_player_index = (self.next_player_index + 1) % len(self.players)
 
     def print_game_board(self):
         print("=========" * self.game_board.num_cols)
         print(('--------' * self.game_board.num_cols + '\n').join(['|{:^6s}|' * self.game_board.num_cols + '\n']
                                                                   * self.game_board.num_rows)
-              .format(*[str(self.game_board.get_cell(i, j).state)
+              .format(*[str(self.game_board.get_cell((i, j)).state)
                         for i in range(self.game_board.num_rows)
                         for j in range(self.game_board.num_cols)]))
         print("=========" * self.game_board.num_cols)
@@ -213,8 +238,11 @@ class Game:
 
 
 if __name__ == '__main__':
-    from player import RandomPlayer, HumanPlayer, PlayerType
+    from player import RandomPlayer, PlayerType
 
-    s = Game([RandomPlayer("Random Player", PlayerType.MaxPlayer, 3, 3),
-              HumanPlayer("Human Player", PlayerType.MinPlayer)])
-    s.play()
+    players = [RandomPlayer("Random Player 1", PlayerType.MaxPlayer),
+               RandomPlayer("Random Player 2", PlayerType.MinPlayer)]
+    g = Game(players, 3, 3, 3)
+    for player in players:
+        player.set_game(g.game_board)
+    g.play()

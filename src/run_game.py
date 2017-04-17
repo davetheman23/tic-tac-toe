@@ -22,11 +22,12 @@ def play_non_stop(game):
 
 def main():
     print("Initializing game with players...")
-    minimax_player = MinimaxPlayer("MiniMax Player", PlayerType.MaxPlayer,
-                                   NUM_BOARD_ROWS, NUM_BOARD_COLS, NUM_CONNECTS_TO_WIN, to_start=True)
+    minimax_player = MinimaxPlayer("MiniMax Player", PlayerType.MaxPlayer, to_start=True)
     human_player = HumanPlayer("Human Player", PlayerType.MinPlayer)
     players = [minimax_player, human_player]
     g = Game(players, NUM_BOARD_ROWS, NUM_BOARD_COLS, NUM_CONNECTS_TO_WIN)
+    for player in players:
+        player.set_game(g.game_board)
 
     print("Starting to play tic-tac-toe")
     t = threading.Thread(target=play_non_stop, kwargs={'game': g})
