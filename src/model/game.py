@@ -107,8 +107,7 @@ class GameBoard:
         return tuple(encoded_state)
 
     def get_board_state(self):
-        return [(location, cell.state) for location, cell in self.cells.iteritems()]
-        #return self.cells.iteritems()
+        return ((location, cell.state) for location, cell in self.cells.iteritems())
 
     def get_winning_state(self):
         for cell in self.cells.values():
