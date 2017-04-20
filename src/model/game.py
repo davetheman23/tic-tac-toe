@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import copy
 import time
 
 from enum import Enum
@@ -158,7 +157,8 @@ class Game:
                     continue
                 self.make_move(self.next_player_index, move)
                 self.print_game_board()
-                time.sleep(1)
+                time.sleep(0.1)
+                self.evaluate_game_board()
             except GameError as e:
                 print(e.msg)
         self.print_winner()
@@ -191,6 +191,13 @@ class Game:
             return False
         # it is a draw then
         return True
+
+    def evaluate_game_board(self):
+        """After making a move, allow all players to take a moment to evaluate the game board"""
+        for player in self.players:
+            if hasattr(player, "evaluate_game_board"):
+                print("Player '{}' is evaluating game board.".format(player.get_id()))
+                player.evaluate_game_board()
 
     def reset(self):
         """Resets the state of the model"""
