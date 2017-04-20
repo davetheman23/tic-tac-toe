@@ -116,12 +116,11 @@ class MinimaxPlayer(Player):
 
 class TDPlayer(Player):
     LOSE_REWARD = -10
-    INDETERMINITE_REWARD = -1
+    INDETERMINITE_REWARD = 0
     DRAW_REWARD = 2
     WIN_REWARD = 10
 
     ALPHA = 0.1
-    ACTION_REWARD = - 0.5
     GAMMA = 0.6
 
     class Mode(Enum):
@@ -144,13 +143,15 @@ class TDPlayer(Player):
             raise RuntimeError("No game is set to the player. The player needs to have a reference to the game.")
 
         if self.mode == TDPlayer.Mode.Play:
-            return self.get_estimated_best_move(state)
+            self.last_state = state
+            best_move = self.get_estimated_best_move(state)
+            self.last_move = best_move
         elif self.mode == TDPlayer.Mode.Learn:
             self.last_state = state
             # when we are learning, just play random moves
             moves = random.sample(self.game_board.get_available_game_positions(), 1)
             self.last_move = moves[0]
-            return self.game_board.convert_position_to_cell_location(self.last_move)
+        return self.game_board.convert_position_to_cell_location(self.last_move)
 
     def evaluate_game_board(self):
         # evaluate the current game state, and reward the player for its last action accordingly
@@ -181,19 +182,26 @@ class TDPlayer(Player):
             (reward + TDPlayer.GAMMA * self.experiences[current_game_state] - self.experiences[state_action_pair])
 
     def get_estimated_best_move(self, state):
+        available_positions = self.game_board.get_available_game_positions()
+        negative_positions = set()
         best_value = -maxint
         best_position = None
-        for available_position in self.game_board.get_available_game_positions():
+        for available_position in available_positions:
             if (state, available_position) in self.experiences:
                 if self.experiences[(state, available_position)] > best_value:
                     best_value = self.experiences[(state, available_position)]
                     best_position = available_position
+                if self.experiences[(state, available_position)] < 0:
+                    negative_positions.add(available_position)
         if best_position is not None:
-            if best_value >= 0:
+            if best_value >= TDPlayer.WIN_REWARD:
                 # it is good enough, in all the available states, we will just play it
-                return self.game_board.convert_position_to_cell_location(best_position)
-            else:
-                print("This position yields losing state, we will just do a random move, including this one")
+                return best_position
 
-        positions = random.sample(self.game_board.get_available_game_positions(), 1)
-        return self.game_board.convert_position_to_cell_location(positions[0])
+        print("None of the moves seems to yield a winning state, so just choose any non-negative positions to play")
+        non_negative_positions = available_positions.difference(negative_positions)
+        if len(non_negative_positions) > 0:
+            available_positions = non_negative_positions
+
+        positions = random.sample(available_positions, 1)
+        return positions[0]
