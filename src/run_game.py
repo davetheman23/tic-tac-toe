@@ -4,7 +4,8 @@ import threading
 import time
 
 from view.visualizer import Visualizer
-from model.player import RandomPlayer, HumanPlayer, MinimaxPlayer, PlayerType
+from model.player import RandomPlayer, HumanPlayer, PlayerType
+from model.minimax_player import MinimaxPlayer
 from model.game import Game
 
 NUM_BOARD_ROWS = 3
@@ -22,7 +23,7 @@ def play_non_stop(game):
 
 def main():
     print("Initializing game with players...")
-    minimax_player = MinimaxPlayer("MiniMax Player", PlayerType.MaxPlayer, to_start=True)
+    minimax_player = MinimaxPlayer("Minimax Player")
     human_player = HumanPlayer("Human Player", PlayerType.MinPlayer)
     players = [minimax_player, human_player]
     g = Game(players, NUM_BOARD_ROWS, NUM_BOARD_COLS, NUM_CONNECTS_TO_WIN)
