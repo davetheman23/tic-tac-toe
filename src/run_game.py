@@ -18,7 +18,7 @@ def play_non_stop(game):
         game.play()
         games_played += 1
         print("========== Finished Game # {} ===========".format(games_played))
-        with open("results.txt", "a") as f:
+        with open("results.txt", "{}".format("w" if games_played == 1 else "a")) as f:
             f.write("game #: {} winner: {}\n".format(games_played, game.get_winner() or "draw"))
         time.sleep(1)
         game.reset()

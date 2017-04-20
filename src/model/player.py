@@ -153,9 +153,6 @@ class TDPlayer(Player):
             return self.game_board.convert_position_to_cell_location(self.last_move)
 
     def evaluate_game_board(self):
-        if self.last_state is None or self.last_move is None:
-            return
-
         # evaluate the current game state, and reward the player for its last action accordingly
         winning_state = self.game_board.get_winning_state()
         if winning_state == self.type.value:
@@ -189,6 +186,7 @@ class TDPlayer(Player):
         for available_position in self.game_board.get_available_game_positions():
             if (state, available_position) in self.experiences:
                 if self.experiences[(state, available_position)] > best_value:
+                    best_value = self.experiences[(state, available_position)]
                     best_position = available_position
         if best_position is not None:
             if best_value >= 0:
