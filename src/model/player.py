@@ -6,7 +6,7 @@ import random
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 
-import algorithm.minimax as minimax_lib
+import src.algorithm.minimax as minimax_lib
 
 
 class PlayerType(Enum):

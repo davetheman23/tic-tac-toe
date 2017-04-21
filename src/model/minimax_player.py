@@ -23,7 +23,8 @@ class MinimaxPlayer(player.Player):
         s = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
 
         for k in range(len(state)):
-            i, j = self.game_board.convert_position_to_cell_location(k)
+            # i, j = self.game_board.convert_position_to_cell_location(k)
+            i, j = k / 3, k % 3
             s[i][j] = state[k]
 
         # TODO hacky
@@ -31,12 +32,12 @@ class MinimaxPlayer(player.Player):
         for i in range(3):
             for j in range(3):
                 if s[i][j] != next_state[i][j]:
-                    print("Minimax player placing X at ({ii}, {jj})...".format(ii=str(i),
-                                                                               jj=str(j)))
-                    return (i, j)
+                    # print("Minimax player placing X at ({ii}, {jj})...".format(ii=str(i),
+                    #                                                            jj=str(j)))
+                    return i, j
 
         print("Error in minimax player!")
-        return (0, 0)
+        return 0, 0
 
     def num_to_state(self, num):
         state = [[self.NONE for i in range(3)] for j in range(3)]
@@ -65,14 +66,15 @@ class MinimaxPlayer(player.Player):
                 if state[i][j] != self.NONE:
                     # Set the kth bit to indicate that the cell is filled
                     num = num | (1 << k)
-                    #print(str(num))
+                    # print(str(num))
 
                     if state[i][j] == self.X:
                         num = num | (1 << (k + 9))
 
         return num
 
-    def is_terminal(self, state):
+    @staticmethod
+    def is_terminal(state):
         # Compute the row, column, and diagonal sums
         row_sums = map(sum, state)
         col_sums = map(sum, [list(column) for column in zip(*state)])
@@ -83,26 +85,30 @@ class MinimaxPlayer(player.Player):
             left_diag_sum += state[i][i]
             right_diag_sum += state[i][2 - i]
 
-        #print("left_diag_sum = {}".format(str(left_diag_sum)))
-        #print("right_diag_sum = {}".format(str(right_diag_sum)))
+        # print("left_diag_sum = {}".format(str(left_diag_sum)))
+        # print("right_diag_sum = {}".format(str(right_diag_sum)))
 
         # Check if a player has won on the diagonal
-        if left_diag_sum == 3 * self.X or right_diag_sum == 3 * self.X:
+        if left_diag_sum == 3 * MinimaxPlayer.X or right_diag_sum == 3 * MinimaxPlayer.X:
+            # print("X player wins!")
             return True, +1
-        elif left_diag_sum == 3 * self.O or right_diag_sum == 3 * self.O:
+        elif left_diag_sum == 3 * MinimaxPlayer.O or right_diag_sum == 3 * MinimaxPlayer.O:
+            # print("O player wins!")
             return True, -1
 
         # The row/column sums indicate if a player has won along a row or column
         for s in (row_sums + col_sums):
-            if s == 3 * self.X:
+            if s == 3 * MinimaxPlayer.X:
+                # print("X player wins!")
                 return True, +1
-            elif s == 3 * self.O:
+            elif s == 3 * MinimaxPlayer.O:
+                # print("O player wins!")
                 return True, -1
 
         # Check if it is not a terminal state yet
         for i in range(3):
             for j in range(3):
-                if state[i][j] == self.NONE:
+                if state[i][j] == MinimaxPlayer.NONE:
                     return False, 0
 
         # Otherwise, there is draw
@@ -114,9 +120,9 @@ class MinimaxPlayer(player.Player):
         for i in range(3):
             for j in range(3):
                 if state[i][j] == self.NONE:
-                    #print("Adding child with {sym} at ({row}, {col})".format(sym=str(symbol), 
-                    #                                                         row=str(i),
-                    #                                                         col=str(j)))
+                    # print("Adding child with {sym} at ({row}, {col})".format(sym=str(symbol),
+                    #                                                          row=str(i),
+                    #                                                          col=str(j)))
                     child = copy.deepcopy(state)
                     child[i][j] = symbol
                     children.append(child)
