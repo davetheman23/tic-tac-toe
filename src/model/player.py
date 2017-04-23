@@ -8,6 +8,7 @@ from enum import Enum
 from sys import maxint
 
 import src.algorithm.minimax as minimax_lib
+import src.algorithm.learning_agents as rl_lib
 
 
 class PlayerType(Enum):
@@ -21,7 +22,7 @@ class Player:
     def __init__(self, player_id, player_type):
         self.player_id = player_id
         self.type = player_type
-        self.game_board = None
+        self.game = None
 
     def __str__(self):
         return "'{}'".format(self.player_id)
@@ -37,9 +38,9 @@ class Player:
     def get_next_move(self, state):
         pass
 
-    def set_game(self, game_board):
+    def set_game(self, game):
         """Tell the player what game we are playing"""
-        self.game_board = game_board
+        self.game = game
 
 
 class RandomPlayer(Player):
@@ -47,10 +48,10 @@ class RandomPlayer(Player):
         Player.__init__(self, player_id, player_type)
 
     def get_next_move(self, state):
-        moves = random.sample(self.game_board.get_available_game_positions(), 1)
+        moves = random.sample(self.game.game_board.get_available_game_positions(), 1)
         if len(moves) == 0:
             raise RuntimeError("No moves available")
-        return self.game_board.convert_position_to_cell_location(moves[0])
+        return self.game.game_board.convert_position_to_cell_location(moves[0])
 
 
 class HumanPlayer(Player):
@@ -77,7 +78,7 @@ class MinimaxPlayer(Player):
         # should be an instance of GameBoard
         self.to_start = to_start
         self.policy = {}
-        if self.game_board is not None:
+        if self.game is not None:
             self._build_minimax_action_policy()
 
     def set_game(self, game_board):
@@ -89,7 +90,7 @@ class MinimaxPlayer(Player):
             self._build_minimax_action_policy()
         if state not in self.policy:
             raise RuntimeError("No action policy for current game state.")
-        return self.game_board.convert_position_to_cell_location(self.policy[state])
+        return self.game.game_board.convert_position_to_cell_location(self.policy[state])
 
     def _build_minimax_action_policy(self):
         clone_player = copy.deepcopy(self)
@@ -103,8 +104,8 @@ class MinimaxPlayer(Player):
         else:
             players = [clone_player, self]
 
-        g = minimax_lib.Game(self.game_board.num_rows, self.game_board.num_cols,
-                             self.game_board.num_connects_to_win, players)
+        g = minimax_lib.Game(self.game.game_board.num_rows, self.game.game_board.num_cols,
+                             self.game.game_board.num_connects_to_win, players)
         minimax = minimax_lib.MinimaxAlgorithm(g)
         print("building best action policies according to minimax algorithm")
         best_policy = minimax.get_best_policy()
@@ -114,94 +115,21 @@ class MinimaxPlayer(Player):
         print("Finished building best action policies according to minimax algorithm")
 
 
-class TDPlayer(Player):
-    LOSE_REWARD = -10
-    INDETERMINITE_REWARD = 0
-    DRAW_REWARD = 2
-    WIN_REWARD = 10
-
-    ALPHA = 0.1
-    GAMMA = 0.6
-
-    class Mode(Enum):
-        Learn = "Learn"
-        Play = "Play"
+class MCPlayer(Player, rl_lib.MonteCarloAgent):
 
     def __init__(self, player_id, player_type):
         Player.__init__(self, player_id, player_type)
-        # experience is what the agent has seen so far, it is a dictionary of (state, action) to reward
-        self.experiences = {}
-        self.mode = TDPlayer.Mode.Learn
-        self.last_state = None
-        self.last_move = None
-
-    def set_mode(self, mode):
-        self.mode = mode
+        rl_lib.MonteCarloAgent.__init__(self)
 
     def get_next_move(self, state):
-        if self.game_board is None:
+        if self.game is None:
             raise RuntimeError("No game is set to the player. The player needs to have a reference to the game.")
 
-        if self.mode == TDPlayer.Mode.Play:
-            self.last_state = state
-            best_move = self.get_estimated_best_move(state)
-            self.last_move = best_move
-        elif self.mode == TDPlayer.Mode.Learn:
-            self.last_state = state
-            # when we are learning, just play random moves
-            moves = random.sample(self.game_board.get_available_game_positions(), 1)
-            self.last_move = moves[0]
-        return self.game_board.convert_position_to_cell_location(self.last_move)
+        best_move = self.get_estimated_best_move(state, self.game.game_board.get_available_game_positions())
+        state_action_pair = (state, best_move)
+        self.trajectory.append(state_action_pair)
+        if state_action_pair not in self.visitation_counts:
+            self.visitation_counts[state_action_pair] = 0
+        self.visitation_counts[state_action_pair] += 1
 
-    def evaluate_game_board(self):
-        # evaluate the current game state, and reward the player for its last action accordingly
-        winning_state = self.game_board.get_winning_state()
-        if winning_state == self.type.value:
-            # it is a win
-            reward = TDPlayer.WIN_REWARD
-        elif winning_state == 0:
-            if len(self.game_board.get_available_game_positions()) == 0:
-                # then it is a draw
-                reward = TDPlayer.DRAW_REWARD
-            else:
-                # the game hasn't ended after this position
-                reward = TDPlayer.INDETERMINITE_REWARD
-        else:
-            # if the other player wins after this player made the last move
-            reward = TDPlayer.LOSE_REWARD
-
-        # use the reward to define the value function of the current game state
-        current_game_state = self.game_board.encode_cell_state(self.game_board.get_board_state())
-        self.experiences[current_game_state] = reward
-
-        # use the reward we have determined to update the action value from my previous state
-        state_action_pair = (self.last_state, self.last_move)
-        if state_action_pair not in self.experiences:
-            self.experiences[state_action_pair] = self.INDETERMINITE_REWARD
-        self.experiences[state_action_pair] += TDPlayer.ALPHA * \
-            (reward + TDPlayer.GAMMA * self.experiences[current_game_state] - self.experiences[state_action_pair])
-
-    def get_estimated_best_move(self, state):
-        available_positions = self.game_board.get_available_game_positions()
-        negative_positions = set()
-        best_value = -maxint
-        best_position = None
-        for available_position in available_positions:
-            if (state, available_position) in self.experiences:
-                if self.experiences[(state, available_position)] > best_value:
-                    best_value = self.experiences[(state, available_position)]
-                    best_position = available_position
-                if self.experiences[(state, available_position)] < 0:
-                    negative_positions.add(available_position)
-        if best_position is not None:
-            if best_value >= TDPlayer.WIN_REWARD:
-                # it is good enough, in all the available states, we will just play it
-                return best_position
-
-        print("None of the moves seems to yield a winning state, so just choose any non-negative positions to play")
-        non_negative_positions = available_positions.difference(negative_positions)
-        if len(non_negative_positions) > 0:
-            available_positions = non_negative_positions
-
-        positions = random.sample(available_positions, 1)
-        return positions[0]
+        return self.game.game_board.convert_position_to_cell_location(best_move)

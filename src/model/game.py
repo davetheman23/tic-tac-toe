@@ -145,23 +145,27 @@ class Game:
         self.next_player_index = 0
         self.players = players
 
+        self.learning = False
+
     def play(self):
         """The main play loop of the model"""
         while not self.is_terminated():
             try:
                 next_player = self.get_next_player()
+                if hasattr(next_player, "evaluate_game_state"):
+                    next_player.evaluate_game_state(next_player.game)
                 move = next_player.get_next_move(self.game_board.encode_cell_state(self.get_game_board_state()))
                 if move is None:
                     # if no move available just skip
-                    time.sleep(0.1)
+                    time.sleep(0 if self.learning else 0.1)
                     continue
                 self.make_move(self.next_player_index, move)
-                self.print_game_board()
-                time.sleep(0.1)
-                self.evaluate_game_board()
+
+                if self.learning is False:
+                    time.sleep(0.1)
             except GameError as e:
                 print(e.msg)
-        self.print_winner()
+        self.evaluate_game_board_final_state()
 
     def get_game_board_state(self):
         return self.game_board.get_board_state()
@@ -192,12 +196,11 @@ class Game:
         # it is a draw then
         return True
 
-    def evaluate_game_board(self):
+    def evaluate_game_board_final_state(self):
         """After making a move, allow all players to take a moment to evaluate the game board"""
         for player in self.players:
-            if hasattr(player, "evaluate_game_board"):
-                print("Player '{}' is evaluating game board.".format(player.get_id()))
-                player.evaluate_game_board()
+            if hasattr(player, "evaluate_game_board_final_state"):
+                player.evaluate_game_board_final_state(player.game)
 
     def reset(self):
         """Resets the state of the model"""
